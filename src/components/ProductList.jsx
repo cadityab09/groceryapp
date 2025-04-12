@@ -22,7 +22,7 @@ function ProductList() {
 
     return (
         <div>
-            <div className="p-4 bg-gradient-to-r from-purple-200 via-purple-200 to-pink-200 rounded-2xl shadow-2xl">
+            <div className="p-4 bg-gradient-to-r from-purple-200 via-purple-200 to-pink-200 rounded-2xl shadow-2xl mb-20">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                     {filteredItems.map((p, i) => (
                         <div key={i} className="bg-[#ffffff] shadow-md rounded-lg p-4 relative border border-gray-200 hover:shadow-xl transition duration-300 ease-in-out bg-white-999 hover:bg-gray-100">

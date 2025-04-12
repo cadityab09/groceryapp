@@ -1,3 +1,5 @@
+import { useDispatch, useSelector } from "react-redux";
+import CartBar from "./CartBar";
 import ProductCategory from "./ProductCategory";
 import ProductList from "./ProductList";
 import SpecialOffers from "./SpecialOffers";
@@ -16,6 +18,9 @@ const ProductCard = ({ image, label, discount }) => (
   
   export default function HomeView() {
 
+    const dispatch = useDispatch();
+    const cartCount = useSelector((state) => state.cart.items.reduce((sum, item) => sum + item.quantity, 0));
+    const totalAmount = useSelector((state) => state.cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0));
     return (
       <div className="px-3 space-y-4">
 
@@ -29,6 +34,9 @@ const ProductCard = ({ image, label, discount }) => (
 
         <ProductCategory></ProductCategory>
         <ProductList></ProductList>
+        {cartCount>0 && (
+                  <CartBar itemCount={cartCount} totalAmount={totalAmount}></CartBar>
+          )}
       </div>
     );
   }

@@ -14,46 +14,56 @@ function calculateBillDetails(cartItems) {
   let breadCount = 0;
   let butterCount = 0;
 
-  // Calculate subtotal
-  cartItems.forEach(item => {
+  const updatedCartItems = cartItems.map(item => ({
+    ...item,
+    saving: 0, // default saving per item
+  }));
+
+  updatedCartItems.forEach(item => {
     subtotal += item.price * item.quantity;
 
-    if (item.name.toLowerCase() === 'cheese') cheeseCount = item.quantity;
-    if (item.name.toLowerCase() === 'soup') soupCount = item.quantity;
-    if (item.name.toLowerCase() === 'bread') breadCount = item.quantity;
-    if (item.name.toLowerCase() === 'butter') butterCount = item.quantity;
+    const name = item.name.toLowerCase();
+    if (name === 'cheese') cheeseCount = item.quantity;
+    if (name === 'soup') soupCount = item.quantity;
+    if (name === 'bread') breadCount = item.quantity;
+    if (name === 'butter') butterCount = item.quantity;
   });
 
+  // Cheese Offer
   if (cheeseCount >= 2) {
     const freeCheese = Math.floor(cheeseCount / 2);
-    const cheesePrice = cartItems.find(item => item.name.toLowerCase() === 'cheese').price;
-    const saved = freeCheese * cheesePrice;
+    const cheeseItem = updatedCartItems.find(item => item.name.toLowerCase() === 'cheese');
+    const saved = freeCheese * cheeseItem.price;
+    cheeseItem.saving = saved;
     savings += saved;
     appliedOffers.push({
       description: `Buy 1 Get 1 Free on Cheese (${freeCheese} free)`,
-      amount: saved.toFixed(2)
+      amount: saved.toFixed(2),
     });
   }
 
+  // Bread Offer
   const breadDiscounted = Math.min(soupCount, breadCount);
   if (breadDiscounted > 0) {
-    const breadPrice = cartItems.find(item => item.name.toLowerCase() === 'bread').price;
-    const saved = breadDiscounted * breadPrice * 0.5;
+    const breadItem = updatedCartItems.find(item => item.name.toLowerCase() === 'bread');
+    const saved = breadDiscounted * breadItem.price * 0.5;
+    breadItem.saving = saved;
     savings += saved;
     appliedOffers.push({
       description: `Half price Bread with Soup (${breadDiscounted} Bread)`,
-      amount: saved.toFixed(2)
+      amount: saved.toFixed(2),
     });
   }
 
-  // Butter 1/3 off
+  // Butter Offer
   if (butterCount > 0) {
-    const butterPrice = cartItems.find(item => item.name.toLowerCase() === 'butter').price;
-    const saved = butterCount * butterPrice * (1 / 3);
+    const butterItem = updatedCartItems.find(item => item.name.toLowerCase() === 'butter');
+    const saved = butterCount * butterItem.price * (1 / 3);
+    butterItem.saving = saved;
     savings += saved;
     appliedOffers.push({
       description: `1/3 off Butter (${butterCount} Butter)`,
-      amount: saved.toFixed(2)
+      amount: saved.toFixed(2),
     });
   }
 
@@ -63,18 +73,20 @@ function calculateBillDetails(cartItems) {
     subtotal: subtotal.toFixed(2),
     total: total.toFixed(2),
     savings: savings.toFixed(2),
-    appliedOffers
+    appliedOffers,
+    updatedCartItems, // return updated cart with per-item savings
   };
 }
+
 
 function CartDetails() {
   const dispatch = useDispatch();
   const cartItems = useSelector(state => state.cart.items);
 
-  const { subtotal, total, savings, appliedOffers } = calculateBillDetails(cartItems);
+  const { subtotal, total, savings, appliedOffers, updatedCartItems } = calculateBillDetails(cartItems);
   console.log(cartItems);
   return (
-    <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white p-4 ">
+    <div className="bg-gradient-to-b from-pink-50 to-white p-4 fixed w-full h-full overflow-y-auto">
       <header className="bg-pink-500 text-white py-4 sticky top-0 shadow-md z-10 max-w-4xl mx-auto rounded-lg fixed">
         <h1 className="text-center text-2xl font-bold tracking-wide">🛒 Your Cart</h1>
       </header>
@@ -85,38 +97,72 @@ function CartDetails() {
         ) : (
           <>
             <div className="space-y-4">
-              {cartItems.map((item, i) => (
-                <div key={i} className="bg-white rounded-xl shadow-lg flex items-center justify-between p-4">
-                  <img src={item.img} alt={item.name} className="w-20 h-20 object-cover rounded-lg" />
+              {updatedCartItems.map((item, i) => (
+                <div key={i} className="bg-white rounded-xl shadow-lg p-4 space-y-2">
+                  <div className="flex items-start gap-4">
+                    {/* Product Image */}
+                    <img src={item.img} alt={item.name} className="w-20 h-20 object-cover rounded-lg" />
 
-                  <div className="flex-1 px-4">
-                    <div className="font-semibold text-lg">{item.name}</div>
-                    <div className="text-sm text-gray-500">{item.quantityText}</div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <button onClick={() => dispatch(decrementQuantity(item))} className="w-8 h-8 bg-pink-100 hover:bg-pink-200 text-pink-600 font-bold rounded">
-                        -
-                      </button>
-                      <span className="w-8 text-center">{item.quantity}</span>
-                      <button onClick={() => { dispatch(incrementQuantity(item)); console.log(cartItems) }} className="w-8 h-8 bg-pink-100 hover:bg-pink-200 text-pink-600 font-bold rounded">
-                        +
+                    {/* Product Info */}
+                    <div className="flex-1 space-y-2">
+                      <div className="text-lg font-semibold text-gray-800">{item.name}</div>
+                      <div className="text-sm text-gray-500">₹{item.price.toFixed(2)}</div>
+
+                      {/* Price Breakdown */}
+                      <div className="text-sm text-gray-600">
+                        Item price ₹{item.price.toFixed(2)} × {item.quantity} = ₹
+                        {(item.price * item.quantity).toFixed(2)}
+                      </div>
+
+                      {/* Savings if present */}
+                      {item.saving > 0 && (
+                        <div className="text-sm text-green-500 font-medium">
+                          Savings ₹{item.saving.toFixed(2)}
+                        </div>
+                      )}
+
+                      {/* Item cost after discount */}
+                      <div className="text-base text-gray-800 font-semibold">
+                        Item cost ₹{(item.price * item.quantity - (item.saving || 0)).toFixed(2)}
+                      </div>
+
+                      {/* Quantity Controls */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          onClick={() => dispatch(decrementQuantity(item))}
+                          className="w-8 h-8 bg-pink-100 hover:bg-pink-200 text-pink-600 font-bold rounded"
+                        >
+                          -
+                        </button>
+                        <span className="w-8 text-center font-medium">{item.quantity}</span>
+                        <button
+                          onClick={() => dispatch(incrementQuantity(item))}
+                          className="w-8 h-8 bg-pink-100 hover:bg-pink-200 text-pink-600 font-bold rounded"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Remove & Price */}
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-pink-600">
+                        ₹{(item.price * item.quantity - (item.saving || 0)).toFixed(2)}
+                      </div>
+                      <button
+                        onClick={() => dispatch(removeFromCart(item))}
+                        className="text-xs text-gray-400 hover:text-red-500 mt-1"
+                      >
+                        Remove
                       </button>
                     </div>
                   </div>
-
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-pink-600">₹{item.price * item.quantity}</div>
-                    <button
-                      onClick={() => dispatch(removeFromCart(item))}
-                      className="text-xs text-gray-400 hover:text-red-500 mt-1"
-                    >
-                      Remove
-                    </button>
-                  </div>
                 </div>
               ))}
+
             </div>
 
-            <div className="bg-[#f2f2f2] shadow-xl p-6 rounded-2xl sticky bottom-4 border border-gray-200">
+            <div className="bg-[#f2f2f2] shadow-xl p-6 rounded-2xl sticky bottom-10 border border-gray-200">
               {/* <div className="bg-white shadow-xl p-6 rounded-2xl">
                 <h2 className="text-xl font-bold mb-2 text-pink-600">🧾 Bill Summary</h2>
                 <div className="flex justify-between">
